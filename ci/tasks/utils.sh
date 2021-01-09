@@ -14,3 +14,10 @@ configure_aliyun_cli() {
   fi
 }
 configure_aliyun_cli
+
+configure_goreleaser() {
+  local goreleaser="$(realpath goreleaser/goreleaser_* 2>/dev/null || true)"
+  if [[ -n "${goreleaser}" ]]; then
+    tar -xzf goreleaser/goreleaser_Linux_*.tar.gz -C /usr/bin
+  fi
+}

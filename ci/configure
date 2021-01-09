@@ -13,3 +13,8 @@
 fly -t terraform sp -p alicloud-provider \
   -c pipeline.yml \
   --load-vars-from=vars-pipeline.yaml
+
+fly -t terraform sp -p publish-alicloud-provider \
+  -c publish.yml \
+  -v alicloud_github_token=$GITHUB_TOKEN \
+  -v alicloud_gpg_fingerprint=$GPG_FINGERPRINT

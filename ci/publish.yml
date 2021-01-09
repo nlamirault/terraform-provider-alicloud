@@ -1,0 +1,52 @@
+groups:
+  - name: All
+    jobs:
+      # ECS
+      - Publish
+
+shared:
+  - &clone-provider
+    get: terraform-provider-alicloud
+    resource: terraform-provider-alicloud
+    trigger: false
+
+  - &get-goreleaser
+    get: goreleaser
+    resource: goreleaser
+    version: { tag: 'v0.154.0' }
+
+  - &run
+    task: terraform ci
+    file: terraform-provider-alicloud/ci/tasks/publish.yml
+    params:
+      GITHUB_TOKEN: {{alicloud_github_token}}
+      GPG_FINGERPRINT: {{alicloud_gpg_fingerprint}}
+
+jobs:
+  - name: Publish
+    plan:
+      - <<: *clone-provider
+      - aggregate:
+          - *get-goreleaser
+      - <<: *run
+
+resources:
+- name: terraform-provider-alicloud
+  type: git
+  source:
+    uri: https://github.com/aliyun/terraform-provider-alicloud.git
+    branch: xiaozhu
+
+#- name: aliyun-cli
+#  type: github-release
+#  source:
+#    owner: aliyun
+#    repository: aliyun-cli
+#    insecure: true
+
+- name: goreleaser
+  type: github-release
+  source:
+    owner: goreleaser
+    repository: goreleaser
+    insecure: true
