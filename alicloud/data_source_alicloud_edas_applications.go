@@ -108,12 +108,15 @@ func dataSourceAlicloudEdasApplicationsRead(d *schema.ResourceData, meta interfa
 	if response.Code != 200 {
 		return WrapError(Error(response.Message))
 	}
-	var filteredApps []edas.Application
+	var filteredApps []edas.ApplicationInListApplication
 	nameRegex, ok := d.GetOk("name_regex")
 	if (ok && nameRegex.(string) != "") || (len(idsMap) > 0) {
 		var r *regexp.Regexp
 		if nameRegex != "" {
-			r = regexp.MustCompile(nameRegex.(string))
+			r, err = regexp.Compile(nameRegex.(string))
+			if err != nil {
+				return WrapError(err)
+			}
 		}
 		for _, app := range response.ApplicationList.Application {
 			if r != nil && !r.MatchString(app.Name) {
@@ -133,7 +136,7 @@ func dataSourceAlicloudEdasApplicationsRead(d *schema.ResourceData, meta interfa
 	return edasApplicationAttributes(d, filteredApps)
 }
 
-func edasApplicationAttributes(d *schema.ResourceData, apps []edas.Application) error {
+func edasApplicationAttributes(d *schema.ResourceData, apps []edas.ApplicationInListApplication) error {
 	var appIds []string
 	var s []map[string]interface{}
 	var names []string

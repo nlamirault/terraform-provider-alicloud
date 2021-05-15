@@ -26,6 +26,16 @@ func testSweepFnfSchedule(region string) error {
 	if err != nil {
 		return WrapErrorf(err, "error getting Alicloud client.")
 	}
+	support := false
+	for _, v := range connectivity.FnfSupportRegions {
+		if v == connectivity.Region(region) {
+			support = true
+			break
+		}
+	}
+	if !support {
+		return nil
+	}
 	client := rawClient.(*connectivity.AliyunClient)
 
 	prefixes := []string{
@@ -53,7 +63,8 @@ func testSweepFnfSchedule(region string) error {
 		return WrapErrorf(err, FailedGetAttributeMsg, action, "$.Schedules", response)
 	}
 
-	for _, v := range resp.([]interface{}) {
+	result, _ := resp.([]interface{})
+	for _, v := range result {
 		item := v.(map[string]interface{})
 		name := item["ScheduleName"].(string)
 		skip := true

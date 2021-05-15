@@ -191,7 +191,8 @@ func dataSourceAlicloudTsdbInstancesRead(d *schema.ResourceData, meta interface{
 		if err != nil {
 			return WrapErrorf(err, FailedGetAttributeMsg, action, "$.InstanceList", response)
 		}
-		for _, v := range resp.([]interface{}) {
+		result, _ := resp.([]interface{})
+		for _, v := range result {
 			item := v.(map[string]interface{})
 			if len(idsMap) > 0 {
 				if _, ok := idsMap[fmt.Sprint(item["InstanceId"])]; !ok {
@@ -203,7 +204,7 @@ func dataSourceAlicloudTsdbInstancesRead(d *schema.ResourceData, meta interface{
 			}
 			objects = append(objects, item)
 		}
-		if len(resp.([]interface{})) < PageSizeLarge {
+		if len(result) < PageSizeLarge {
 			break
 		}
 		request["PageNumber"] = request["PageNumber"].(int) + 1
@@ -220,7 +221,7 @@ func dataSourceAlicloudTsdbInstancesRead(d *schema.ResourceData, meta interface{
 			"instance_id":      fmt.Sprint(object["InstanceId"]),
 			"instance_storage": object["InstanceStorage"],
 			"network_type":     object["NetworkType"],
-			"payment_type":     convertTSDBInstancePaymentTypeResponse(object["PaymentType"].(string)),
+			"payment_type":     convertTsdbInstancePaymentTypeResponse(object["PaymentType"].(string)),
 			"status":           object["Status"],
 			"vswitch_id":       object["VswitchId"],
 			"vpc_id":           object["VpcId"],

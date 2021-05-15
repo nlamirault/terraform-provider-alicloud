@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	util "github.com/alibabacloud-go/tea-utils/service"
+
 	"github.com/denverdino/aliyungo/common"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -88,7 +90,6 @@ func resourceAliyunInstance() *schema.Resource {
 			"resource_group_id": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 			"description": {
 				Type:         schema.TypeString,
@@ -108,6 +109,7 @@ func resourceAliyunInstance() *schema.Resource {
 				Optional:         true,
 				Computed:         true,
 				DiffSuppressFunc: ecsInternetDiffSuppressFunc,
+				Deprecated:       "The attribute is invalid and no any affect for the instance. So it has been deprecated from version v1.121.2.",
 			},
 			"internet_max_bandwidth_out": {
 				Type:     schema.TypeInt,
@@ -275,7 +277,6 @@ func resourceAliyunInstance() *schema.Resource {
 			"period": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  1,
 				ValidateFunc: validation.Any(
 					validation.IntBetween(1, 9),
 					validation.IntInSlice([]int{12, 24, 36, 48, 60})),
@@ -596,16 +597,16 @@ func resourceAliyunInstanceRead(d *schema.ResourceData, meta interface{}) error 
 				d.Set("auto_renew_period", renew.Duration*12)
 			}
 		}
-		period, err := computePeriodByUnit(instance.CreationTime, instance.ExpiredTime, d.Get("period").(int), periodUnit)
-		if err != nil {
-			return WrapError(err)
-		}
-		thisPeriod := d.Get("period").(int)
-		if thisPeriod != 0 && thisPeriod != period {
-			d.Set("period", thisPeriod)
-		} else {
-			d.Set("period", period)
-		}
+		//period, err := computePeriodByUnit(instance.CreationTime, instance.ExpiredTime, d.Get("period").(int), periodUnit)
+		//if err != nil {
+		//	return WrapError(err)
+		//}
+		//thisPeriod := d.Get("period").(int)
+		//if thisPeriod != 0 && thisPeriod != period {
+		//	d.Set("period", thisPeriod)
+		//} else {
+		//	d.Set("period", period)
+		//}
 		d.Set("period_unit", periodUnit)
 	}
 
@@ -624,6 +625,25 @@ func resourceAliyunInstanceUpdate(d *schema.ResourceData, meta interface{}) erro
 		} else {
 			d.SetPartial("tags")
 		}
+	}
+	if !d.IsNewResource() && d.HasChange("resource_group_id") {
+		action := "JoinResourceGroup"
+		request := map[string]interface{}{
+			"ResourceType":    "instance",
+			"ResourceId":      d.Id(),
+			"RegionId":        client.RegionId,
+			"ResourceGroupId": d.Get("resource_group_id"),
+		}
+		conn, err := client.NewEcsClient()
+		if err != nil {
+			return WrapError(err)
+		}
+		response, err := conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2014-05-26"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
+		if err != nil {
+			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
+		}
+		addDebug(action, response, request)
+		d.SetPartial("resource_group_id")
 	}
 
 	if err := setVolumeTags(client, TagResourceDisk, d); err != nil {
@@ -1481,9 +1501,6 @@ func modifyInstanceType(d *schema.ResourceData, meta interface{}, run bool) (boo
 				return update, WrapErrorf(err, DefaultErrorMsg, d.Id(), request.GetActionName(), AlibabaCloudSdkGoERROR)
 			}
 		}
-		//if err != nil {
-		//	return update, err
-		//}
 
 		// Ensure instance's type has been replaced successfully.
 		timeout := DefaultTimeoutMedium
@@ -1577,16 +1594,15 @@ func modifyInstanceNetworkSpec(d *schema.ResourceData, meta interface{}) error {
 			}
 
 			if instance.InternetMaxBandwidthOut == d.Get("internet_max_bandwidth_out").(int) &&
-				instance.InternetChargeType == d.Get("internet_charge_type").(string) &&
-				instance.InternetMaxBandwidthIn == d.Get("internet_max_bandwidth_in").(int) {
+				instance.InternetChargeType == d.Get("internet_charge_type").(string) {
 				break
 			}
 
 			if time.Now().After(deadline) {
 				return WrapError(Error(`wait for internet update timeout! expect internet_charge_type value %s, get %s
-					expect internet_max_bandwidth_out value %d, get %d, expect internet_max_bandwidth_out value %d, get %d,`,
+					expect internet_max_bandwidth_out value %d, get %d,`,
 					d.Get("internet_charge_type").(string), instance.InternetChargeType, d.Get("internet_max_bandwidth_out").(int),
-					instance.InternetMaxBandwidthOut, d.Get("internet_max_bandwidth_in").(int), instance.InternetMaxBandwidthIn))
+					instance.InternetMaxBandwidthOut))
 			}
 			time.Sleep(1 * time.Second)
 		}

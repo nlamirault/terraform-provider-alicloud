@@ -62,7 +62,7 @@ variable "name" {
 }
 
 data "alicloud_images" "default" {
-  name_regex = "^ubuntu_18.*64"
+  name_regex = "^ubuntu"
   most_recent = true
   owners = "system"
 }
@@ -72,7 +72,7 @@ data "alicloud_instance_types" "default" {
 }
 
 resource "alicloud_vpc" "default" {
-  name = "${var.name}"
+  vpc_name = "${var.name}"
   cidr_block = "172.16.0.0/12"
 }
 
@@ -83,10 +83,10 @@ resource "alicloud_vswitch" "default" {
   name = "${var.name}"
 }
 
-resource "alicloud_slb" "default" {
-  name = "${var.name}"
+resource "alicloud_slb_load_balancer" "default" {
+  load_balancer_name = "${var.name}"
   vswitch_id = "${alicloud_vswitch.default.id}"
-  specification = "slb.s1.small"
+  load_balancer_spec = "slb.s1.small"
 }
 
 resource "alicloud_security_group" "default" {
@@ -108,7 +108,7 @@ resource "alicloud_instance" "default" {
 }
 
 resource "alicloud_slb_attachment" "default" {
-  load_balancer_id = "${alicloud_slb.default.id}"
+  load_balancer_id = "${alicloud_slb_load_balancer.default.id}"
   instance_ids = ["${alicloud_instance.default.id}"]
   weight = 42
 }

@@ -178,6 +178,34 @@ func csKubernetesWorkerPostPaidDiffSuppressFunc(k, old, new string, d *schema.Re
 	return d.Get("worker_instance_charge_type").(string) == "PostPaid" || !(d.Id() == "") && !d.Get("force_update").(bool)
 }
 
+func csNodepoolInstancePostPaidDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	if v, ok := d.GetOk("instance_charge_type"); ok && v.(string) == "PostPaid" {
+		return true
+	}
+	return false
+}
+
+func masterDiskPerformanceLevelDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	if v, ok := d.GetOk("master_disk_category"); ok && v.(string) != "cloud_essd" {
+		return true
+	}
+	return false
+}
+
+func workerDiskPerformanceLevelDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	if v, ok := d.GetOk("worker_disk_category"); ok && v.(string) != "cloud_essd" {
+		return true
+	}
+	return false
+}
+
+func csNodepoolDiskPerformanceLevelDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	if v, ok := d.GetOk("system_disk_category"); ok && v.(string) != "cloud_essd" {
+		return true
+	}
+	return false
+}
+
 func csForceUpdate(k, old, new string, d *schema.ResourceData) bool {
 	if d.Id() == "" {
 		return false
@@ -247,7 +275,15 @@ func archiveBackupPeriodDiffSuppressFunc(k, old, new string, d *schema.ResourceD
 }
 
 func PostPaidDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
-	return strings.ToLower(d.Get("instance_charge_type").(string)) == "postpaid"
+	// payment_type is the instance_charge_type's replacement.
+	// If both instance_charge_type and payment_type are "", it means hiding a default "PostPaid"
+	if v, ok := d.GetOk("instance_charge_type"); ok && strings.ToLower(v.(string)) == "prepaid" {
+		return false
+	}
+	if v, ok := d.GetOk("payment_type"); ok && v.(string) == "Subscription" {
+		return false
+	}
+	return true
 }
 
 func PostPaidAndRenewDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
@@ -263,6 +299,13 @@ func redisPostPaidDiffSuppressFunc(k, old, new string, d *schema.ResourceData) b
 
 func redisPostPaidAndRenewDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
 	if strings.ToLower(d.Get("payment_type").(string)) == "prepaid" && d.Get("auto_renew").(bool) {
+		return false
+	}
+	return true
+}
+
+func ramSAMLProviderDiffSuppressFunc(old, new string) bool {
+	if strings.Replace(old, "\n", "", -1) != strings.Replace(new, "\n", "", -1) {
 		return false
 	}
 	return true
@@ -321,13 +364,19 @@ func polardbPostPaidAndRenewDiffSuppressFunc(k, old, new string, d *schema.Resou
 }
 
 func adbPostPaidAndRenewDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
-	if d.Get("pay_type").(string) == "PrePaid" && d.Get("renewal_status").(string) != string(RenewNotRenewal) {
+	if v, ok := d.GetOk("pay_type"); ok && v.(string) == "PrePaid" && d.Get("renewal_status").(string) != string(RenewNotRenewal) {
+		return false
+	}
+	if v, ok := d.GetOk("payment_type"); ok && v.(string) == "Subscription" && d.Get("renewal_status").(string) != string(RenewNotRenewal) {
 		return false
 	}
 	return true
 }
 func adbPostPaidDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
-	if d.Get("pay_type").(string) == "PrePaid" {
+	if v, ok := d.GetOk("pay_type"); ok && v.(string) == "PrePaid" {
+		return false
+	}
+	if v, ok := d.GetOk("payment_type"); ok && v.(string) == "Subscription" {
 		return false
 	}
 	return true
@@ -560,5 +609,29 @@ func alikafkaInstanceConfigDiffSuppressFunc(k, old, new string, d *schema.Resour
 		}
 	}
 
+	return true
+}
+
+func payTypePostPaidDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	return strings.ToLower(d.Get("pay_type").(string)) == "postpaid"
+}
+
+func engineDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	return strings.ToLower(d.Get("engine").(string)) == "bds"
+}
+
+func whiteIpListDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	oldArray := strings.Split(old, ",")
+	newArray := strings.Split(new, ",")
+	if len(oldArray) != len(newArray) {
+		return false
+	}
+	sort.Strings(oldArray)
+	sort.Strings(newArray)
+	for i := range newArray {
+		if newArray[i] != oldArray[i] {
+			return false
+		}
+	}
 	return true
 }

@@ -166,7 +166,8 @@ func dataSourceAlicloudGaBandwidthPackagesRead(d *schema.ResourceData, meta inte
 		if err != nil {
 			return WrapErrorf(err, FailedGetAttributeMsg, action, "$.BandwidthPackages", response)
 		}
-		for _, v := range resp.([]interface{}) {
+		result, _ := resp.([]interface{})
+		for _, v := range result {
 			item := v.(map[string]interface{})
 			if bandwidthPackageNameRegex != nil {
 				if !bandwidthPackageNameRegex.MatchString(fmt.Sprint(item["Name"])) {
@@ -180,7 +181,7 @@ func dataSourceAlicloudGaBandwidthPackagesRead(d *schema.ResourceData, meta inte
 			}
 			objects = append(objects, item)
 		}
-		if len(resp.([]interface{})) < PageSizeLarge {
+		if len(result) < PageSizeLarge {
 			break
 		}
 		request["PageNumber"] = request["PageNumber"].(int) + 1
@@ -199,7 +200,7 @@ func dataSourceAlicloudGaBandwidthPackagesRead(d *schema.ResourceData, meta inte
 			"cbn_geographic_region_idb": object["CbnGeographicRegionIdB"],
 			"description":               object["Description"],
 			"expired_time":              object["ExpiredTime"],
-			"payment_type":              convertGaBandwidthPakcagePaymentTypeResponse(formatGaBandwidthPakcagePaymentTypeString(object["ChargeType"])),
+			"payment_type":              convertGaBandwidthPackagePaymentTypeResponse(object["ChargeType"].(string)),
 			"type":                      object["Type"],
 		}
 		if detailedEnabled := d.Get("enable_details"); !detailedEnabled.(bool) {

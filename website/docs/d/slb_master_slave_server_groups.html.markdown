@@ -47,8 +47,8 @@ resource "alicloud_vpc" "main" {
 
 resource "alicloud_vswitch" "main" {
   vpc_id            = alicloud_vpc.main.id
-  availability_zone = data.alicloud_zones.default.zones[0].id
-  name              = var.name
+  zone_id           = data.alicloud_zones.default.zones[0].id
+  vswitch_name      = var.name
   cidr_block = "172.16.0.0/16"
 }
 
@@ -71,14 +71,14 @@ resource "alicloud_instance" "instance" {
   vswitch_id                 = alicloud_vswitch.main.id
 }
 
-resource "alicloud_slb" "instance" {
-  name          = var.name
+resource "alicloud_slb_load_balancer" "instance" {
+  load_balancer_name = var.name
   vswitch_id    = alicloud_vswitch.main.id
-  specification = "slb.s2.small"
+  load_balancer_spec = "slb.s2.small"
 }
 
 resource "alicloud_slb_master_slave_server_group" "group" {
-  load_balancer_id = alicloud_slb.instance.id
+  load_balancer_id = alicloud_slb_load_balancer.instance.id
   name             = var.name
 
   servers {
@@ -97,7 +97,7 @@ resource "alicloud_slb_master_slave_server_group" "group" {
 }
 
 data "alicloud_slb_master_slave_server_groups" "sample_ds" {
-  load_balancer_id = alicloud_slb.instance.id
+  load_balancer_id = alicloud_slb_load_balancer.instance.id
 }
 
 output "first_slb_server_group_id" {

@@ -101,10 +101,60 @@ func resourceAlicloudCSKubernetesNodePool() *schema.Resource {
 				Default:      40,
 				ValidateFunc: validation.IntBetween(20, 32768),
 			},
+			"system_disk_performance_level": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				ValidateFunc:     validation.StringInSlice([]string{"PL0", "PL1", "PL2", "PL3"}, false),
+				DiffSuppressFunc: csNodepoolDiskPerformanceLevelDiffSuppressFunc,
+			},
 			"image_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+			},
+			"instance_charge_type": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				Default:      PostPaid,
+				ValidateFunc: validation.StringInSlice([]string{string(common.PrePaid), string(common.PostPaid)}, false),
+			},
+			"period": {
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Default:          1,
+				ValidateFunc:     validation.IntInSlice([]int{1, 2, 3, 6, 12, 24, 36, 48, 60}),
+				DiffSuppressFunc: csNodepoolInstancePostPaidDiffSuppressFunc,
+			},
+			"period_unit": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				Default:          Month,
+				ValidateFunc:     validation.StringInSlice([]string{"Month"}, false),
+				DiffSuppressFunc: csNodepoolInstancePostPaidDiffSuppressFunc,
+			},
+			"auto_renew": {
+				Type:             schema.TypeBool,
+				Default:          false,
+				Optional:         true,
+				DiffSuppressFunc: csNodepoolInstancePostPaidDiffSuppressFunc,
+			},
+			"auto_renew_period": {
+				Type:             schema.TypeInt,
+				Optional:         true,
+				Default:          1,
+				ValidateFunc:     validation.IntInSlice([]int{1, 2, 3, 6, 12}),
+				DiffSuppressFunc: csNodepoolInstancePostPaidDiffSuppressFunc,
+			},
+			"install_cloud_monitor": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
+			"unschedulable": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 			"data_disks": {
 				Optional: true,
@@ -141,6 +191,10 @@ func resourceAlicloudCSKubernetesNodePool() *schema.Resource {
 							Optional: true,
 						},
 						"auto_snapshot_policy_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"performance_level": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -316,7 +370,7 @@ func resourceAlicloudCSKubernetesNodePoolCreate(d *schema.ResourceData, meta int
 	// reset interval to 10s
 	stateConf := BuildStateConf([]string{"initial", "scaling"}, []string{"active"}, d.Timeout(schema.TimeoutCreate), 30*time.Second, csService.CsKubernetesNodePoolStateRefreshFunc(d.Id(), []string{"deleting", "failed"}))
 	if _, err := stateConf.WaitForState(); err != nil {
-		return WrapErrorf(err, IdMsg, d.Id())
+		return WrapErrorf(err, "ResourceID:%s , TaskID:%s ", d.Id(), nodePool.TaskID)
 	}
 
 	return resourceAlicloudCSNodePoolRead(d, meta)
@@ -388,6 +442,28 @@ func resourceAlicloudCSNodePoolUpdate(d *schema.ResourceData, meta interface{}) 
 		args.ScalingGroup.VpcId = vpcId
 		args.ScalingGroup.VswitchIds = expandStringList(d.Get("vswitch_ids").([]interface{}))
 	}
+
+	if v, ok := d.GetOk("instance_charge_type"); ok {
+		args.InstanceChargeType = v.(string)
+		if args.InstanceChargeType == string(PrePaid) {
+			update = true
+			args.Period = d.Get("period").(int)
+			args.PeriodUnit = d.Get("period_unit").(string)
+			args.AutoRenew = d.Get("auto_renew").(bool)
+			args.AutoRenewPeriod = d.Get("auto_renew_period").(int)
+		}
+	}
+
+	if d.HasChange("install_cloud_monitor") {
+		update = true
+		args.CmsEnabled = d.Get("install_cloud_monitor").(bool)
+	}
+
+	if d.HasChange("unschedulable") {
+		update = true
+		args.Unschedulable = d.Get("unschedulable").(bool)
+	}
+
 	if d.HasChange("instance_types") {
 		update = true
 		args.ScalingGroup.InstanceTypes = expandStringList(d.Get("instance_types").([]interface{}))
@@ -419,6 +495,11 @@ func resourceAlicloudCSNodePoolUpdate(d *schema.ResourceData, meta interface{}) 
 	if d.HasChange("system_disk_size") {
 		update = true
 		args.ScalingGroup.SystemDiskSize = int64(d.Get("system_disk_size").(int))
+	}
+
+	if d.HasChange("system_disk_performance_level") {
+		update = true
+		args.SystemDiskPerformanceLevel = d.Get("system_disk_performance_level").(string)
 	}
 
 	if d.HasChange("image_id") {
@@ -528,10 +609,20 @@ func resourceAlicloudCSNodePoolRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("security_group_id", object.SecurityGroupId)
 	d.Set("system_disk_category", object.SystemDiskCategory)
 	d.Set("system_disk_size", object.SystemDiskSize)
+	d.Set("system_disk_performance_level", object.SystemDiskPerformanceLevel)
 	d.Set("image_id", object.ImageId)
 	d.Set("node_name_mode", object.NodeNameMode)
 	d.Set("user_data", object.UserData)
 	d.Set("scaling_group_id", object.ScalingGroupId)
+	d.Set("unschedulable", object.Unschedulable)
+	d.Set("instance_charge_type", object.InstanceChargeType)
+	if object.InstanceChargeType == "PrePaid" {
+		d.Set("period", object.Period)
+		d.Set("period_unit", object.PeriodUnit)
+		d.Set("auto_renew", object.AutoRenew)
+		d.Set("auto_renew_period", object.AutoRenewPeriod)
+		d.Set("install_cloud_monitor", object.CmsEnabled)
+	}
 
 	if passwd, ok := d.GetOk("password"); ok && passwd.(string) != "" {
 		d.Set("password", passwd)
@@ -679,6 +770,24 @@ func buildNodePoolArgs(d *schema.ResourceData, meta interface{}) (*cs.CreateNode
 	setNodePoolTaints(&creationArgs.KubernetesConfig, d)
 	setNodePoolLabels(&creationArgs.KubernetesConfig, d)
 
+	if v, ok := d.GetOk("instance_charge_type"); ok {
+		creationArgs.InstanceChargeType = v.(string)
+		if creationArgs.InstanceChargeType == string(PrePaid) {
+			creationArgs.Period = d.Get("period").(int)
+			creationArgs.PeriodUnit = d.Get("period_unit").(string)
+			creationArgs.AutoRenew = d.Get("auto_renew").(bool)
+			creationArgs.AutoRenewPeriod = d.Get("auto_renew_period").(int)
+		}
+	}
+
+	if v, ok := d.GetOk("install_cloud_monitor"); ok {
+		creationArgs.CmsEnabled = v.(bool)
+	}
+
+	if v, ok := d.GetOk("unschedulable"); ok {
+		creationArgs.Unschedulable = v.(bool)
+	}
+
 	if v, ok := d.GetOk("user_data"); ok && v != "" {
 		_, base64DecodeError := base64.StdEncoding.DecodeString(v.(string))
 		if base64DecodeError == nil {
@@ -700,6 +809,10 @@ func buildNodePoolArgs(d *schema.ResourceData, meta interface{}) (*cs.CreateNode
 		if management, ok := v.([]interface{}); len(management) > 0 && ok {
 			creationArgs.Management = setManagedNodepoolConfig(management)
 		}
+	}
+
+	if v, ok := d.GetOk("system_disk_performance_level"); ok {
+		creationArgs.SystemDiskPerformanceLevel = v.(string)
 	}
 
 	return creationArgs, nil
@@ -767,6 +880,7 @@ func setNodePoolDataDisks(scalingGroup *cs.ScalingGroup, d *schema.ResourceData)
 				AutoSnapshotPolicyId: pack["auto_snapshot_policy_id"].(string),
 				KMSKeyId:             pack["kms_key_id"].(string),
 				Encrypted:            pack["encrypted"].(string),
+				PerformanceLevel:     pack["performance_level"].(string),
 			}
 			createDataDisks = append(createDataDisks, dataDisk)
 		}
@@ -895,9 +1009,10 @@ func flattenNodeDataDisksConfig(config []cs.NodePoolDataDisk) (m []map[string]in
 
 	for _, disks := range config {
 		m = append(m, map[string]interface{}{
-			"size":      disks.Size,
-			"category":  disks.Category,
-			"encrypted": disks.Encrypted,
+			"size":              disks.Size,
+			"category":          disks.Category,
+			"encrypted":         disks.Encrypted,
+			"performance_level": disks.PerformanceLevel,
 		})
 	}
 
@@ -942,7 +1057,9 @@ func flattenTagsConfig(config []cs.Tag) map[string]string {
 	}
 
 	for _, tag := range config {
-		m[tag.Key] = tag.Value
+		if tag.Key != DefaultClusterTag {
+			m[tag.Key] = tag.Value
+		}
 	}
 
 	return m

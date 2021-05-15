@@ -155,7 +155,7 @@ data "alicloud_instance_types" "default" {
 }
 
 data "alicloud_images" "default" {
-	name_regex = "^ubuntu_18.*64"
+	name_regex  = "^ubuntu_[0-9]+_[0-9]+_x64*"
 	owners = "system"
 }
 
@@ -193,6 +193,11 @@ resource "alicloud_instance" "default" {
   tags = {
     Name = "TerraformTest-instance"
   }
+  lifecycle {
+    ignore_changes = [
+      instance_type,
+    ]
+  }
 }
 
 resource "alicloud_eip" "default" {
@@ -217,7 +222,7 @@ data "alicloud_instance_types" "default" {
 }
 
 data "alicloud_images" "default" {
-	name_regex = "^ubuntu_18.*64"
+    name_regex  = "^ubuntu_[0-9]+_[0-9]+_x64*"
 	owners = "system"
 }
 
@@ -259,6 +264,11 @@ resource "alicloud_instance" "default" {
   instance_name = "${var.name}"
   tags = {
     Name = "TerraformTest-instance"
+  }
+  lifecycle {
+    ignore_changes = [
+      instance_type,
+    ]
   }
 }
 

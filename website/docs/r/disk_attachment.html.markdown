@@ -9,6 +9,8 @@ description: |-
 
 # alicloud\_disk\_attachment
 
+-> **DEPRECATED:** This resource has been renamed to [alicloud_ecs_disk_attachment](https://www.terraform.io/docs/providers/alicloud/r/ecs_disk_attachment.html) from version 1.122.0.
+
 Provides an Alicloud ECS Disk Attachment as a resource, to attach and detach disks from ECS Instances.
 
 ## Example Usage
@@ -61,6 +63,12 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `instance_id` - ID of the Instance.
-* `disk_id` - ID of the Disk.
-* `device_name` - The device name exposed to the instance.
+* `id` - The Disk Attachment ID and it formats as `<disk_id>:<instance_id>`.
+
+## Import
+
+The disk attachment can be imported using the id, e.g.
+
+```
+$ terraform import alicloud_disk_attachment.example d-abc12345678:i-abc12355
+```

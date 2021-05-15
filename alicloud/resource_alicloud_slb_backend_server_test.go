@@ -38,7 +38,7 @@ func TestAccAlicloudSlbBackendServers_vpc(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"load_balancer_id": "${alicloud_slb.default.id}",
+					"load_balancer_id": "${alicloud_slb_load_balancer.default.id}",
 					"backend_servers": []map[string]interface{}{
 						{
 							"server_id": "${alicloud_instance.instance.0.id}",
@@ -60,7 +60,7 @@ func TestAccAlicloudSlbBackendServers_vpc(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"load_balancer_id": "${alicloud_slb.default.id}",
+					"load_balancer_id": "${alicloud_slb_load_balancer.default.id}",
 					"backend_servers": []map[string]interface{}{
 						{
 							"server_id": "${alicloud_instance.instance.0.id}",
@@ -80,7 +80,7 @@ func TestAccAlicloudSlbBackendServers_vpc(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"load_balancer_id": "${alicloud_slb.default.id}",
+					"load_balancer_id": "${alicloud_slb_load_balancer.default.id}",
 					"backend_servers": []map[string]interface{}{
 						{
 							"server_id": "${alicloud_network_interface.default.0.id}",
@@ -98,7 +98,7 @@ func TestAccAlicloudSlbBackendServers_vpc(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"load_balancer_id": "${alicloud_slb.default.id}",
+					"load_balancer_id": "${alicloud_slb_load_balancer.default.id}",
 					"backend_servers":  buildBackendServersMap(21),
 				}),
 				Check: resource.ComposeTestCheckFunc(
@@ -109,7 +109,7 @@ func TestAccAlicloudSlbBackendServers_vpc(t *testing.T) {
 			},
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"load_balancer_id": "${alicloud_slb.default.id}",
+					"load_balancer_id": "${alicloud_slb_load_balancer.default.id}",
 					"backend_servers": []map[string]interface{}{
 						{
 							"server_id": "${alicloud_instance.instance.0.id}",
@@ -156,7 +156,7 @@ func TestAccAlicloudSlbBackendServers_multi_vpc(t *testing.T) {
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"count":            "2",
-					"load_balancer_id": "${alicloud_slb.default.id}",
+					"load_balancer_id": "${alicloud_slb_load_balancer.default.id}",
 					"backend_servers": []map[string]interface{}{
 						{
 							"server_id": "${alicloud_instance.instance.0.id}",
@@ -206,7 +206,7 @@ func TestAccAlicloudSlbBackendServers_classic(t *testing.T) {
 			{
 				//Config: testAccSlbBackendServersClassic,
 				Config: testAccConfig(map[string]interface{}{
-					"load_balancer_id": "${alicloud_slb.default.id}",
+					"load_balancer_id": "${alicloud_slb_load_balancer.default.id}",
 					"backend_servers": []map[string]interface{}{
 						{
 							"server_id": "${alicloud_instance.instance.0.id}",
@@ -233,7 +233,7 @@ func TestAccAlicloudSlbBackendServers_classic(t *testing.T) {
 			{
 				//Config: testAccSlbBackendServersClassicUpdateServer,
 				Config: testAccConfig(map[string]interface{}{
-					"load_balancer_id": "${alicloud_slb.default.id}",
+					"load_balancer_id": "${alicloud_slb_load_balancer.default.id}",
 					"backend_servers": []map[string]interface{}{
 						{
 							"server_id": "${alicloud_instance.instance.0.id}",
@@ -250,7 +250,7 @@ func TestAccAlicloudSlbBackendServers_classic(t *testing.T) {
 			{
 				//Config: testAccSlbBackendServersClassic,
 				Config: testAccConfig(map[string]interface{}{
-					"load_balancer_id": "${alicloud_slb.default.id}",
+					"load_balancer_id": "${alicloud_slb_load_balancer.default.id}",
 					"backend_servers": []map[string]interface{}{
 						{
 							"server_id": "${alicloud_instance.instance.0.id}",
@@ -299,7 +299,7 @@ data "alicloud_instance_types" "default" {
   memory_size       = 2
 }
 data "alicloud_images" "default" {
-  name_regex  = "^ubuntu_18.*64"
+  name_regex  = "^ubuntu"
   most_recent = true
   owners      = "system"
 }
@@ -311,7 +311,7 @@ resource "alicloud_vswitch" "default" {
   vpc_id            = "${alicloud_vpc.default.id}"
   cidr_block        = "172.16.0.0/16"
   availability_zone = "${data.alicloud_instance_types.default.instance_types.0.availability_zones.0}"
-  name              = "${var.name}"
+  vswitch_name              = "${var.name}"
 }
 resource "alicloud_security_group" "group" {
   name   = "${var.name}"
@@ -330,10 +330,10 @@ resource "alicloud_instance" "instance" {
   system_disk_category       = "cloud_efficiency"
   vswitch_id                 = "${alicloud_vswitch.default.id}"
 }
-resource "alicloud_slb" "default" {
-  name          = "${var.name}"
+resource "alicloud_slb_load_balancer" "default" {
+  load_balancer_name          = "${var.name}"
   vswitch_id    = "${alicloud_vswitch.default.id}"
-  specification = "slb.s2.small"
+  load_balancer_spec = "slb.s2.small"
 }
 
 
@@ -382,7 +382,7 @@ data "alicloud_instance_types" "default" {
 	memory_size = 2
 }
 data "alicloud_images" "default" {
-    name_regex = "^ubuntu_18.*64"
+    name_regex = "^ubuntu"
 	most_recent = true
 	owners = "system"
 }
@@ -394,7 +394,7 @@ resource "alicloud_vswitch" "default" {
     vpc_id = "${alicloud_vpc.default.id}"
     cidr_block = "172.16.0.0/16"
     availability_zone = "${data.alicloud_instance_types.default.instance_types.0.availability_zones.0}"
-    name = "${var.name}"
+    vswitch_name = "${var.name}"
 }
 resource "alicloud_security_group" "default" {
   	name = "${var.name}"
@@ -413,10 +413,10 @@ resource "alicloud_instance" "instance" {
   	system_disk_category = "cloud_efficiency"
   	vswitch_id = "${alicloud_vswitch.default.id}"
 }
-resource "alicloud_slb" "default" {
-  	name = "${var.name}"
+resource "alicloud_slb_load_balancer" "default" {
+  	load_balancer_name = "${var.name}"
   	vswitch_id = "${alicloud_vswitch.default.id}"
-    specification = "slb.s1.small"
+    load_balancer_spec = "slb.s1.small"
 }
 
 `)

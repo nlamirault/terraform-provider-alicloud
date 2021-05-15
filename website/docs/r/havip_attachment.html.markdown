@@ -1,4 +1,5 @@
 ---
+subcategory: "VPC"
 layout: "alicloud"
 page_title: "Alicloud: alicloud_havip_attachment"
 sidebar_current: "docs-alicloud-resource-havip-attachment"
@@ -45,7 +46,7 @@ resource "alicloud_vpc" "foo" {
 resource "alicloud_vswitch" "foo" {
   vpc_id            = alicloud_vpc.foo.id
   cidr_block        = "172.16.0.0/21"
-  availability_zone = data.alicloud_zones.default.zones[0].id
+  zone_id           = data.alicloud_zones.default.zones[0].id
   name              = var.name
 }
 

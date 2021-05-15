@@ -7,12 +7,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alibabacloud-go/tea/tea"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 
 	"encoding/base64"
 
 	"encoding/json"
 
+	"github.com/alibabacloud-go/cs-20151215/v2/client"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/cs"
@@ -22,11 +25,16 @@ type CsService struct {
 	client *connectivity.AliyunClient
 }
 
+type CsClient struct {
+	client *client.Client
+}
+
 const (
 	COMPONENT_AUTO_SCALER      = "cluster-autoscaler"
 	COMPONENT_DEFAULT_VRESION  = "v1.0.0"
 	SCALING_CONFIGURATION_NAME = "kubernetes_autoscaler_autogen"
 	DefaultECSTag              = "k8s.aliyun.com"
+	DefaultClusterTag          = "ack.aliyun.com"
 	RECYCLE_MODE_LABEL         = "k8s.io/cluster-autoscaler/node-template/label/policy"
 	DefaultAutoscalerTag       = "k8s.io/cluster-autoscaler"
 	SCALING_GROUP_NAME         = "sg-%s-%s"
@@ -640,4 +648,13 @@ func GetKubernetesNetworkName(cluster *cs.KubernetesClusterDetail) (network stri
 		}
 	}
 	return "", fmt.Errorf("no network addon found")
+}
+
+func (s *CsClient) DescribeUserPermission(uid string) ([]*client.DescribeUserPermissionResponseBody, error) {
+	body, err := s.client.DescribeUserPermission(tea.String(uid))
+	if err != nil {
+		return nil, err
+	}
+
+	return body.Body, err
 }

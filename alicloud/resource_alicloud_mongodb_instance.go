@@ -150,7 +150,6 @@ func resourceAlicloudMongoDBInstance() *schema.Resource {
 				},
 				ValidateFunc: validation.StringInSlice([]string{"enabled"}, false),
 				Optional:     true,
-				ForceNew:     true,
 			},
 			"maintain_start_time": {
 				Type:     schema.TypeString,
@@ -332,14 +331,18 @@ func resourceAlicloudMongoDBInstanceRead(d *schema.ResourceData, meta interface{
 	}
 	d.Set("ssl_status", sslAction.SSLStatus)
 
-	if replication_factor, err := strconv.Atoi(instance.ReplicationFactor); err == nil {
-		d.Set("replication_factor", replication_factor)
-	}
-	tdeInfo, err := ddsService.DescribeMongoDBTDEInfo(d.Id())
+	replicationFactor, err := strconv.Atoi(instance.ReplicationFactor)
 	if err != nil {
 		return WrapError(err)
 	}
-	d.Set("tde_Status", tdeInfo.TDEStatus)
+	d.Set("replication_factor", replicationFactor)
+	if replicationFactor != 1 {
+		tdeInfo, err := ddsService.DescribeMongoDBTDEInfo(d.Id())
+		if err != nil {
+			return WrapError(err)
+		}
+		d.Set("tde_Status", tdeInfo.TDEStatus)
+	}
 
 	d.Set("tags", ddsService.tagsInAttributeToMap(instance.Tags.Tag))
 	return nil
@@ -419,13 +422,26 @@ func resourceAlicloudMongoDBInstanceUpdate(d *schema.ResourceData, meta interfac
 		request.DBInstanceId = d.Id()
 		request.SecurityGroupId = d.Get("security_group_id").(string)
 
-		raw, err := client.WithDdsClient(func(client *dds.Client) (interface{}, error) {
-			return client.ModifySecurityGroupConfiguration(request)
+		wait := incrementalWait(2*time.Second, 3*time.Second)
+		err := resource.Retry(10*time.Minute, func() *resource.RetryError {
+			raw, err := client.WithDdsClient(func(client *dds.Client) (interface{}, error) {
+				return client.ModifySecurityGroupConfiguration(request)
+			})
+
+			if err != nil {
+				if IsExpectedErrors(err, []string{"InstanceStatusInvalid"}) || NeedRetry(err) {
+					wait()
+					return resource.RetryableError(err)
+				}
+				return resource.NonRetryableError(err)
+			}
+			addDebug(request.GetActionName(), raw, request.RpcRequest, request)
+			return nil
 		})
+
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), request.GetActionName(), AlibabaCloudSdkGoERROR)
 		}
-		addDebug(request.GetActionName(), raw, request.RpcRequest, request)
 		d.SetPartial("security_group_id")
 	}
 

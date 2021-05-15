@@ -39,7 +39,7 @@ func TestAccAlicloudSlbMasterSlaveServerGroup_vpc(t *testing.T) {
 			{
 				//Config: testAccSlbMasterSlaveServerGroupVpc,
 				Config: testAccConfig(map[string]interface{}{
-					"load_balancer_id": "${alicloud_slb.default.id}",
+					"load_balancer_id": "${alicloud_slb_load_balancer.default.id}",
 					"name":             "${var.name}",
 					"servers": []map[string]interface{}{
 						{
@@ -101,7 +101,7 @@ func TestAccAlicloudSlbMasterSlaveServerGroup_multi_vpc(t *testing.T) {
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"count":            "10",
-					"load_balancer_id": "${alicloud_slb.default.id}",
+					"load_balancer_id": "${alicloud_slb_load_balancer.default.id}",
 					"name":             "${var.name}",
 					"servers": []map[string]interface{}{
 						{
@@ -142,12 +142,12 @@ data "alicloud_instance_types" "default" {
 	eni_amount        = 2
 }
 data "alicloud_images" "default" {
-    name_regex = "^ubuntu_18.*64"
+    name_regex = "^ubuntu"
     most_recent = true
     owners = "system"
 }
 resource "alicloud_vpc" "default" {
-    name = "${var.name}"
+    vpc_name = "${var.name}"
     cidr_block = "172.16.0.0/16"
 }
 resource "alicloud_vswitch" "default" {
@@ -185,10 +185,10 @@ resource "alicloud_instance" "default" {
     system_disk_category = "cloud_efficiency"
     vswitch_id = "${alicloud_vswitch.default.id}"
 }
-resource "alicloud_slb" "default" {
-    name = "${var.name}"
+resource "alicloud_slb_load_balancer" "default" {
+    load_balancer_name = "${var.name}"
     vswitch_id = "${alicloud_vswitch.default.id}"
-    specification  = "slb.s2.small"
+    load_balancer_spec  = "slb.s2.small"
 }
 `, name)
 }

@@ -170,8 +170,7 @@ func TestAccAlicloudMongoDBShardingInstance_classic(t *testing.T) {
 						"name":                      "",
 						"storage_engine":            "WiredTiger",
 						"instance_charge_type":      "PostPaid",
-						"tags.%":                    "1",
-						"tags.Created":              "TF",
+						"tags.%":                    "0",
 					}),
 				),
 			},
@@ -232,6 +231,16 @@ func TestAccAlicloudMongoDBShardingInstance_classic(t *testing.T) {
 				),
 			},
 			{
+				Config: testMongoDBShardingInstance_classic_tags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheck(map[string]string{
+						"tags.%":       "2",
+						"tags.Created": "TF",
+						"tags.for":     "terraform_test123",
+					}),
+				),
+			},
+			{
 				Config: testMongoDBShardingInstance_classic_together,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(map[string]string{
@@ -244,6 +253,9 @@ func TestAccAlicloudMongoDBShardingInstance_classic(t *testing.T) {
 						"backup_period.1592931319":    "Tuesday",
 						"backup_period.1970423419":    "Wednesday",
 						"backup_time":                 "10:00Z-11:00Z",
+						"tags.%":                      "0",
+						"tags.Created":                REMOVEKEY,
+						"tags.for":                    REMOVEKEY,
 					}),
 				),
 			}},
@@ -536,11 +548,9 @@ func TestAccAlicloudMongoDBShardingInstance_multi_instance(t *testing.T) {
 }
 
 const testMongoDBShardingInstance_classic_base = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 resource "alicloud_mongodb_sharding_instance" "default" {
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -556,17 +566,12 @@ resource "alicloud_mongodb_sharding_instance" "default" {
   mongo_list {
     node_class = "dds.mongos.mid"
   }
-  tags = {
-    Created = "TF"
-  }
 }`
 
 const testMongoDBShardingInstance_classic_base4 = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 resource "alicloud_mongodb_sharding_instance" "default" {
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "4.0"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -585,11 +590,9 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_classic_tde = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 resource "alicloud_mongodb_sharding_instance" "default" {
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "4.0"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -609,13 +612,12 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_classic_security_group_id = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
-data "alicloud_security_groups" "default" {
+data "alicloud_mongodb_zones" "default" {}
+resource "alicloud_security_group" "default" {
+	name = "tf-testaccformongodbsharding"
 }
 resource "alicloud_mongodb_sharding_instance" "default" {
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "4.0"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -632,15 +634,13 @@ resource "alicloud_mongodb_sharding_instance" "default" {
     node_class = "dds.mongos.mid"
   }
   tde_status    = "enabled"
-  security_group_id    = "${data.alicloud_security_groups.default.groups.0.id}"
+  security_group_id    = alicloud_security_group.default.id
 }`
 
 const testMongoDBShardingInstance_classic_name = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 resource "alicloud_mongodb_sharding_instance" "default" {
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -660,11 +660,9 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_classic_account_password = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 resource "alicloud_mongodb_sharding_instance" "default" {
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -685,11 +683,9 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_classic_mongos = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 resource "alicloud_mongodb_sharding_instance" "default" {
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -713,11 +709,9 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_classic_shard = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 resource "alicloud_mongodb_sharding_instance" "default" {
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -745,11 +739,9 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_classic_backup = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 resource "alicloud_mongodb_sharding_instance" "default" {
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -778,12 +770,46 @@ resource "alicloud_mongodb_sharding_instance" "default" {
   backup_time      = "11:00Z-12:00Z"
 }`
 
-const testMongoDBShardingInstance_classic_together = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+const testMongoDBShardingInstance_classic_tags = `
+data "alicloud_mongodb_zones" "default" {}
 resource "alicloud_mongodb_sharding_instance" "default" {
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
+  engine_version = "3.4"
+  shard_list {
+    node_class   = "dds.shard.mid"
+    node_storage = 10
+    }
+  shard_list {
+    node_class   = "dds.shard.standard"
+    node_storage = 20
+    }
+  shard_list {
+    node_class   = "dds.shard.standard"
+    node_storage = 20
+  }
+  mongo_list {
+    node_class = "dds.mongos.mid"
+    }
+  mongo_list {
+    node_class = "dds.mongos.mid"
+    }
+   mongo_list {
+    node_class = "dds.mongos.mid"
+  }
+  name             = "tf-testAccMongoDBShardingInstance_test"
+  account_password = "YourPassword_"
+  backup_period    = ["Wednesday"]
+  backup_time      = "11:00Z-12:00Z"
+  tags = {
+	Created = "TF"
+	for = "terraform_test123"
+  }
+}`
+
+const testMongoDBShardingInstance_classic_together = `
+data "alicloud_mongodb_zones" "default" {}
+resource "alicloud_mongodb_sharding_instance" "default" {
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -814,23 +840,21 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_vpc_base = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 data "alicloud_vpcs" "default" {
 	is_default = true
 }
 
 data "alicloud_vswitches" "default" {
   vpc_id = data.alicloud_vpcs.default.ids.0
-  zone_id = "${data.alicloud_zones.default.zones.0.id"
+  zone_id = "${data.alicloud_mongodb_zones.default.zones.0.id}"
 }
 variable "name" {
   default = "tf-testAccMongoDBShardingInstance_vpc"
 }
 resource "alicloud_mongodb_sharding_instance" "default" {
   vswitch_id     = data.alicloud_vswitches.default.ids.0
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -849,23 +873,21 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_vpc_name = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 data "alicloud_vpcs" "default" {
 	is_default = true
 }
 
 data "alicloud_vswitches" "default" {
   vpc_id = data.alicloud_vpcs.default.ids.0
-  zone_id = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id = "${data.alicloud_mongodb_zones.default.zones.0.id}"
 }
 variable "name" {
   default = "tf-testAccMongoDBShardingInstance_vpc"
 }
 resource "alicloud_mongodb_sharding_instance" "default" {
   vswitch_id     = data.alicloud_vswitches.default.ids.0
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -885,23 +907,21 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_vpc_account_password = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 data "alicloud_vpcs" "default" {
 	is_default = true
 }
 
 data "alicloud_vswitches" "default" {
   vpc_id = data.alicloud_vpcs.default.ids.0
-  zone_id = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id = "${data.alicloud_mongodb_zones.default.zones.0.id}"
 }
 variable "name" {
   default = "tf-testAccMongoDBShardingInstance_vpc"
 }
 resource "alicloud_mongodb_sharding_instance" "default" {
   vswitch_id     = data.alicloud_vswitches.default.ids.0
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -922,23 +942,21 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_vpc_mongos = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 data "alicloud_vpcs" "default" {
 	is_default = true
 }
 
 data "alicloud_vswitches" "default" {
   vpc_id = data.alicloud_vpcs.default.ids.0
-  zone_id = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id = "${data.alicloud_mongodb_zones.default.zones.0.id}"
 }
 variable "name" {
   default = "tf-testAccMongoDBShardingInstance_vpc"
 }
 resource "alicloud_mongodb_sharding_instance" "default" {
   vswitch_id     = data.alicloud_vswitches.default.ids.0
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -962,23 +980,21 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_vpc_shard = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 data "alicloud_vpcs" "default" {
 	is_default = true
 }
 
 data "alicloud_vswitches" "default" {
   vpc_id = data.alicloud_vpcs.default.ids.0
-  zone_id = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id = "${data.alicloud_mongodb_zones.default.zones.0.id}"
 }
 variable "name" {
   default = "tf-testAccMongoDBShardingInstance_vpc"
 }
 resource "alicloud_mongodb_sharding_instance" "default" {
   vswitch_id     = data.alicloud_vswitches.default.ids.0
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -1006,23 +1022,21 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_vpc_backup = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 data "alicloud_vpcs" "default" {
 	is_default = true
 }
 
 data "alicloud_vswitches" "default" {
   vpc_id = data.alicloud_vpcs.default.ids.0
-  zone_id = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id = "${data.alicloud_mongodb_zones.default.zones.0.id}"
 }
 variable "name" {
   default = "tf-testAccMongoDBShardingInstance_vpc"
 }
 resource "alicloud_mongodb_sharding_instance" "default" {
   vswitch_id     = data.alicloud_vswitches.default.ids.0
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -1052,16 +1066,14 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_vpc_together = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 data "alicloud_vpcs" "default" {
 	is_default = true
 }
 
 data "alicloud_vswitches" "default" {
   vpc_id = data.alicloud_vpcs.default.ids.0
-  zone_id = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id = "${data.alicloud_mongodb_zones.default.zones.0.id}"
 }
 
 variable "name" {
@@ -1069,7 +1081,7 @@ variable "name" {
 }
 resource "alicloud_mongodb_sharding_instance" "default" {
   vswitch_id     = data.alicloud_vswitches.default.ids.0
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -1100,16 +1112,14 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_multi_instance_base = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 variable "name" {
   default = "tf-testAccMongoDBShardingInstance_multi_instance"
 }
 
 resource "alicloud_mongodb_sharding_instance" "default" {
   count          = 3
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -1128,16 +1138,14 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_multi_instance_name = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 variable "name" {
   default = "tf-testAccMongoDBShardingInstance_multi_instance"
 }
 
 resource "alicloud_mongodb_sharding_instance" "default" {
   count          = 3
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -1157,16 +1165,14 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_multi_instance_account_password = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 variable "name" {
   default = "tf-testAccMongoDBShardingInstance_multi_instance"
 }
 
 resource "alicloud_mongodb_sharding_instance" "default" {
   count          = 3
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -1187,16 +1193,14 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_multi_instance_mongos = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 variable "name" {
   default = "tf-testAccMongoDBShardingInstance_multi_instance"
 }
 
 resource "alicloud_mongodb_sharding_instance" "default" {
   count          = 3
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -1220,16 +1224,14 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_multi_instance_shard = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 variable "name" {
   default = "tf-testAccMongoDBShardingInstance_multi_instance"
 }
 
 resource "alicloud_mongodb_sharding_instance" "default" {
   count          = 3
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -1257,16 +1259,14 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_multi_instance_backup = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 variable "name" {
   default = "tf-testAccMongoDBShardingInstance_multi_instance"
 }
 
 resource "alicloud_mongodb_sharding_instance" "default" {
   count          = 3
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"
@@ -1296,16 +1296,14 @@ resource "alicloud_mongodb_sharding_instance" "default" {
 }`
 
 const testMongoDBShardingInstance_multi_instance_together = `
-data "alicloud_zones" "default" {
-  available_resource_creation = "MongoDB"
-}
+data "alicloud_mongodb_zones" "default" {}
 variable "name" {
   default = "tf-testAccMongoDBShardingInstance_multi_instance"
 }
 
 resource "alicloud_mongodb_sharding_instance" "default" {
   count          = 3
-  zone_id        = "${data.alicloud_zones.default.zones.0.id}"
+  zone_id        = "${data.alicloud_mongodb_zones.default.zones.0.id}"
   engine_version = "3.4"
   shard_list {
     node_class   = "dds.shard.mid"

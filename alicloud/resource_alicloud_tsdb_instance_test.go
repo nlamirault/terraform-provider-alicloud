@@ -56,14 +56,15 @@ func testSweepTsdbInstance(region string) error {
 		if err != nil {
 			return WrapErrorf(err, FailedGetAttributeMsg, action, "$.InstanceList", response)
 		}
-		for _, v := range resp.([]interface{}) {
+		result, _ := resp.([]interface{})
+		for _, v := range result {
 			item := v.(map[string]interface{})
 			if v, ok := item["InstanceAlias"]; !ok || v.(string) == "" {
 				continue
 			}
 			instances = append(instances, fmt.Sprint(item["InstanceId"], ":", item["InstanceAlias"]))
 		}
-		if len(resp.([]interface{})) < PageSizeLarge {
+		if len(result) < PageSizeLarge {
 			break
 		}
 		request["PageNumber"] = request["PageNumber"].(int) + 1
@@ -130,6 +131,7 @@ func TestAccAlicloudTsdbInstance_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
+			testAccPreCheckWithRegions(t, true, connectivity.TsdbInstanceSupportRegions)
 		},
 
 		IDRefreshName: resourceId,
@@ -235,12 +237,12 @@ variable "name" {
 data "alicloud_tsdb_zones" "default" {}
 
 resource "alicloud_vpc" "default" {
-  name = var.name
+  vpc_name = var.name
   cidr_block = "192.168.0.0/16"
 }
 
 resource "alicloud_vswitch" "default" {
-  availability_zone = data.alicloud_tsdb_zones.default.ids.1
+  availability_zone = data.alicloud_tsdb_zones.default.ids.0
   cidr_block = "192.168.1.0/24"
   vpc_id = alicloud_vpc.default.id
 }

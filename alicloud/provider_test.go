@@ -81,6 +81,13 @@ func testAccPreCheckPrePaidResources(t *testing.T) {
 	}
 }
 
+func testAccClassicNetworkResources(t *testing.T) {
+	if v := strings.TrimSpace(os.Getenv("ENABLE_CLASSIC_NETWORK")); v != "true" {
+		t.Skip("Skipping testing classic resources, otherwise setting environment parameter 'ENABLE_CLASSIC_NETWORK'.")
+		t.Skipped()
+	}
+}
+
 // Skip automatically the testcases which does not support some known regions.
 // If supported is true, the regions should a list of supporting the service regions.
 // If supported is false, the regions should a list of unsupporting the service regions.
@@ -199,6 +206,13 @@ func testAccPreCheckWithWafInstanceSetting(t *testing.T) {
 	}
 }
 
+func testAccPreCheckWithSlbInstanceSetting(t *testing.T) {
+	if v := strings.TrimSpace(os.Getenv("ALICLOUD_SLB_INSTANCE_ID")); v == "" {
+		t.Skipf("Skipping the test case with no slb instance id setting")
+		t.Skipped()
+	}
+}
+
 func testAccPreCheckWithSmartAccessGatewayAppSetting(t *testing.T) {
 	if v := strings.TrimSpace(os.Getenv("SAG_APP_INSTANCE_ID")); v == "" {
 		t.Skipf("Skipping the test case with no sag app instance id setting")
@@ -225,6 +239,14 @@ func testAccPreCheckWithAlikafkaAclEnable(t *testing.T) {
 
 	if aclEnable != "true" {
 		t.Skipf("Skipping the test case because the acl is not enabled.")
+		t.Skipped()
+	}
+}
+
+func testAccPreCheckEnterpriseAccountEnabled(t *testing.T) {
+	enable := os.Getenv("ENTERPRISE_ACCOUNT_ENABLED")
+	if enable != "true" {
+		t.Skipf("Skipping the test case because the enterprise account is not enabled.")
 		t.Skipped()
 	}
 }

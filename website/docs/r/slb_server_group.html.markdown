@@ -47,14 +47,14 @@ data "alicloud_images" "default" {
 }
 
 resource "alicloud_vpc" "default" {
-  name       = var.name
+  vpc_name       = var.name
   cidr_block = "172.16.0.0/16"
 }
 
 resource "alicloud_vswitch" "default" {
   vpc_id            = alicloud_vpc.default.id
   cidr_block        = "172.16.0.0/16"
-  availability_zone = data.alicloud_zones.default.zones[0].id
+  zone_id           = data.alicloud_zones.default.zones[0].id
   name              = var.name
 }
 
@@ -77,13 +77,13 @@ resource "alicloud_instance" "instance" {
   vswitch_id                 = alicloud_vswitch.default.id
 }
 
-resource "alicloud_slb" "default" {
-  name       = var.name
+resource "alicloud_slb_load_balancer" "default" {
+  load_balancer_name = var.name
   vswitch_id = alicloud_vswitch.default.id
 }
 
 resource "alicloud_slb_server_group" "default" {
-  load_balancer_id = alicloud_slb.default.id
+  load_balancer_id = alicloud_slb_load_balancer.default.id
   name             = var.name
   servers {
     server_ids = [alicloud_instance.instance[0].id, alicloud_instance.instance[1].id]

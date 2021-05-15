@@ -11,14 +11,14 @@ description: |-
 
 This data source provides FileSystems available to the user.
 
--> NOTE: Available in 1.35.0+
+-> **NOTE**: Available in 1.35.0+
 
 ## Example Usage
 
-```
+```terraform
 data "alicloud_nas_file_systems" "fs" {
   protocol_type = "NFS"
-  description   = "${alicloud_nas_file_system.foo.description}"
+  description_regex   = "${alicloud_nas_file_system.foo.description}"
 }
 
 output "alicloud_nas_file_systems_id" {
@@ -30,8 +30,8 @@ output "alicloud_nas_file_systems_id" {
 The following arguments are supported:
 
 * `ids` - (Optional) A list of FileSystemId.
-* `storage_type` - (Optional) Filter results by a specific StorageType. 
-* `protocol_type` - (Optional) Filter results by a specific ProtocolType. 
+* `storage_type` - (Optional) Filter results by a specific StorageType. Valid values: `Capacity` and `Performance`.
+* `protocol_type` - (Optional) Filter results by a specific ProtocolType. Valid values: `NFS` and `SMB`.
 * `description_regex` - (Optional) A regex string to filter the results by the ：FileSystem description.
 * `output_file` - (Optional) File name where to save data source results (after running `terraform plan`).
 
@@ -49,3 +49,7 @@ The following attributes are exported in addition to the arguments listed above:
   * `storage_type` - StorageType block of the FileSystem.
   * `metered_size` - MeteredSize of the FileSystem.
   * `create_time` - Time of creation.
+  * `encrypt_type` - (Optional, Available in v1.121.2+) Whether the file system is encrypted.
+                      Valid values:
+                      0: The file system is not encrypted.
+                      1: The file system is encrypted with a managed secret key.

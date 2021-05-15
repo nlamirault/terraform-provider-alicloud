@@ -33,11 +33,11 @@ func resourceAlicloudGaBandwidthPackage() *schema.Resource {
 			"auto_use_coupon": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 			},
 			"bandwidth": {
 				Type:     schema.TypeInt,
 				Required: true,
-				ForceNew: true,
 			},
 			"bandwidth_package_name": {
 				Type:     schema.TypeString,
@@ -150,11 +150,9 @@ func resourceAlicloudGaBandwidthPackageCreate(d *schema.ResourceData, meta inter
 	}
 
 	if v, ok := d.GetOk("payment_type"); ok {
-		if v.(string) == "Subscription" {
-			request["ChargeType"] = convertGaBindwidthPakcagePaymentTypeRequest(v.(string))
+		request["ChargeType"] = convertGaBandwidthPackagePaymentTypeRequest(v.(string))
+		if request["ChargeType"].(string) == "PREPAY" {
 			request["PricingCycle"] = "Month"
-		} else {
-			request["ChargeType"] = convertGaBindwidthPakcagePaymentTypeRequest(v.(string))
 		}
 	}
 
@@ -199,9 +197,12 @@ func resourceAlicloudGaBandwidthPackageRead(d *schema.ResourceData, meta interfa
 	d.Set("cbn_geographic_region_ida", object["CbnGeographicRegionIdA"])
 	d.Set("cbn_geographic_region_idb", object["CbnGeographicRegionIdB"])
 	d.Set("description", object["Description"])
-	d.Set("payment_type", convertGaBandwidthPakcagePaymentTypeResponse(formatGaBandwidthPakcagePaymentTypeString(object["ChargeType"])))
+	d.Set("payment_type", convertGaBandwidthPackagePaymentTypeResponse(object["ChargeType"].(string)))
 	d.Set("status", object["State"])
 	d.Set("type", object["Type"])
+	if val, ok := d.GetOk("auto_use_coupon"); ok {
+		d.Set("auto_use_coupon", val)
+	}
 	return nil
 }
 func resourceAlicloudGaBandwidthPackageUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -213,7 +214,10 @@ func resourceAlicloudGaBandwidthPackageUpdate(d *schema.ResourceData, meta inter
 		"BandwidthPackageId": d.Id(),
 	}
 	request["RegionId"] = client.RegionId
-	request["Bandwidth"] = d.Get("bandwidth")
+	if !d.IsNewResource() && d.HasChange("bandwidth") {
+		update = true
+		request["Bandwidth"] = d.Get("bandwidth")
+	}
 	if d.HasChange("bandwidth_package_name") {
 		update = true
 		request["Name"] = d.Get("bandwidth_package_name")
@@ -238,7 +242,7 @@ func resourceAlicloudGaBandwidthPackageUpdate(d *schema.ResourceData, meta inter
 		if err != nil {
 			return WrapError(err)
 		}
-		wait := incrementalWait(3*time.Second, 30*time.Second)
+		wait := incrementalWait(3*time.Second, 3*time.Second)
 		err = resource.Retry(d.Timeout(schema.TimeoutUpdate), func() *resource.RetryError {
 			response, err = conn.DoRequest(StringPointer(action), nil, StringPointer("POST"), StringPointer("2019-11-20"), StringPointer("AK"), nil, request, &util.RuntimeOptions{})
 			if err != nil {
@@ -254,7 +258,7 @@ func resourceAlicloudGaBandwidthPackageUpdate(d *schema.ResourceData, meta inter
 		if err != nil {
 			return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 		}
-		stateConf := BuildStateConf([]string{}, []string{"active"}, d.Timeout(schema.TimeoutUpdate), 30*time.Second, gaService.GaBandwidthPackageStateRefreshFunc(d.Id(), []string{}))
+		stateConf := BuildStateConf([]string{}, []string{"active", "binded"}, d.Timeout(schema.TimeoutUpdate), 30*time.Second, gaService.GaBandwidthPackageStateRefreshFunc(d.Id(), []string{}))
 		if _, err := stateConf.WaitForState(); err != nil {
 			return WrapErrorf(err, IdMsg, d.Id())
 		}
@@ -262,7 +266,7 @@ func resourceAlicloudGaBandwidthPackageUpdate(d *schema.ResourceData, meta inter
 	return resourceAlicloudGaBandwidthPackageRead(d, meta)
 }
 func resourceAlicloudGaBandwidthPackageDelete(d *schema.ResourceData, meta interface{}) error {
-	if d.Get("payment_type") == "PREPAY" {
+	if d.Get("payment_type") == "Subscription" {
 		log.Printf("[WARN] Cannot destroy resourceAlicloudGaBandwidthPackage prepay type. Terraform will remove this resource from the state file, however resources may remain.")
 		return nil
 	}
@@ -288,7 +292,7 @@ func resourceAlicloudGaBandwidthPackageDelete(d *schema.ResourceData, meta inter
 	}
 	return nil
 }
-func convertGaBindwidthPakcagePaymentTypeRequest(source string) string {
+func convertGaBandwidthPackagePaymentTypeRequest(source string) string {
 	switch source {
 	case "PayAsYouGo":
 		return "POSTPAY"
@@ -297,7 +301,7 @@ func convertGaBindwidthPakcagePaymentTypeRequest(source string) string {
 	}
 	return source
 }
-func convertGaBandwidthPakcagePaymentTypeResponse(source string) string {
+func convertGaBandwidthPackagePaymentTypeResponse(source string) string {
 	switch source {
 	case "POSTPAY":
 		return "PayAsYouGo"
@@ -305,11 +309,4 @@ func convertGaBandwidthPakcagePaymentTypeResponse(source string) string {
 		return "Subscription"
 	}
 	return source
-}
-func formatGaBandwidthPakcagePaymentTypeString(source interface{}) string {
-	if source == nil {
-		return ""
-	} else {
-		return source.(string)
-	}
 }

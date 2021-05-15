@@ -14,7 +14,7 @@ Provides an ALIKAFKA topic resource.
 -> **NOTE:** Available in 1.56.0+
 
 -> **NOTE:**  Only the following regions support create alikafka topic.
-[`cn-hangzhou`,`cn-beijing`,`cn-shenzhen`,`cn-shanghai`,`cn-qingdao`,`cn-hongkong`,`cn-huhehaote`,`cn-zhangjiakou`,`ap-southeast-1`,`ap-south-1`,`ap-southeast-5`]
+[`cn-hangzhou`,`cn-beijing`,`cn-shenzhen`,`cn-shanghai`,`cn-qingdao`,`cn-hongkong`,`cn-huhehaote`,`cn-zhangjiakou`,`cn-chengdu`,`cn-heyuan`,`ap-southeast-1`,`ap-southeast-3`,`ap-southeast-5`,`ap-south-1`,`ap-northeast-1`,`eu-central-1`,`eu-west-1`,`us-west-1`,`us-east-1`]
 
 ## Example Usage
 
@@ -32,7 +32,7 @@ resource "alicloud_vpc" "default" {
 resource "alicloud_vswitch" "default" {
   vpc_id            = alicloud_vpc.default.id
   cidr_block        = "172.16.0.0/24"
-  availability_zone = data.alicloud_zones.default.zones[0].id
+  zone_id           = data.alicloud_zones.default.zones[0].id
 }
 
 resource "alicloud_alikafka_instance" "default" {
@@ -84,3 +84,11 @@ ALIKAFKA TOPIC can be imported using the id, e.g.
 ```
 $ terraform import alicloud_alikafka_topic.topic alikafka_post-cn-123455abc:topicName
 ```
+
+### Timeouts
+
+-> **NOTE:** Available in v1.119.0+.
+
+The `timeouts` block allows you to specify [timeouts](https://www.terraform.io/docs/configuration-0-11/resources.html#timeouts) for certain actions:
+
+* `create` - (Defaults to 10 mins) Used when creating the topic (until it reaches the initial `Running` status). 

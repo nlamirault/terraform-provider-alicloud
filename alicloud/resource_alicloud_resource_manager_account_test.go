@@ -7,13 +7,12 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager"
 	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 )
 
 func TestAccAlicloudResourceManagerAccount_basic(t *testing.T) {
-	var v resourcemanager.Account
+	var v map[string]interface{}
 	resourceId := "alicloud_resource_manager_account.default"
 	ra := resourceAttrInit(resourceId, ResourceManagerAccountMap)
 	rc := resourceCheckInitWithDescribeMethod(resourceId, &v, func() interface{} {
@@ -27,6 +26,7 @@ func TestAccAlicloudResourceManagerAccount_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
+			testAccPreCheckEnterpriseAccountEnabled(t)
 			testAccPreCheck(t)
 			// The created account resource cannot be deleted, and the created dependent resource folder will also be deleted. Therefore, the existing folder is specified in the environment variable for testing. If it is not specified, skip the test.
 			testAccPreCheckWithResourceManagerFloderIdSetting(t)

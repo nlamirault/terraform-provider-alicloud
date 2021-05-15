@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aliyun/terraform-provider-alicloud/alicloud/connectivity"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 )
 
@@ -94,6 +96,7 @@ func TestAccAlicloudTsdbInstancesDataSource(t *testing.T) {
 
 	var perCheck = func() {
 		testAccPreCheck(t)
+		testAccPreCheckWithRegions(t, true, connectivity.TsdbInstanceSupportRegions)
 	}
 
 	tsdbInstancesRecordsCheckInfo.dataSourceTestCheckWithPreCheck(t, rand, perCheck, idsConf, statusConf, engineTypeConf, allConf)
@@ -115,11 +118,11 @@ data "alicloud_tsdb_zones" "default" {}
 
 resource "alicloud_vpc" "default" {
   cidr_block = "192.168.0.0/16"
-  name = var.name
+  vpc_name = var.name
 }
 
 resource "alicloud_vswitch" "default" {
-  availability_zone = data.alicloud_tsdb_zones.default.ids.1
+  availability_zone = data.alicloud_tsdb_zones.default.ids.0
   cidr_block = "192.168.1.0/24"
   vpc_id = alicloud_vpc.default.id
 }

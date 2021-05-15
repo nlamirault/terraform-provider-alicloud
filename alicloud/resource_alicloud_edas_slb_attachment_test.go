@@ -38,9 +38,9 @@ func TestAccAlicloudEdasSlbAttachment_basic(t *testing.T) {
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"app_id": "${alicloud_edas_application.default.id}",
-					"slb_id": "${alicloud_slb.default.id}",
-					"slb_ip": "${alicloud_slb.default.address}",
-					"type":   "${alicloud_slb.default.address_type}",
+					"slb_id": "${alicloud_slb_load_balancer.default.id}",
+					"slb_ip": "${alicloud_slb_load_balancer.default.address}",
+					"type":   "${alicloud_slb_load_balancer.default.address_type}",
 				}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheck(nil),
@@ -81,7 +81,7 @@ func resourceEdasSLBAttachmentDependence(name string) string {
 		  vpc_id            = "${alicloud_vpc.default.id}"
 		  cidr_block        = "172.16.0.0/24"
 		  availability_zone = "${data.alicloud_instance_types.default.instance_types.0.availability_zones.0}"
-		  name              = "${var.name}"
+		  vswitch_name              = "${var.name}"
 		}
 
 		resource "alicloud_security_group" "default" {
@@ -129,8 +129,9 @@ func resourceEdasSLBAttachmentDependence(name string) string {
 		  ecu_info = ["${alicloud_edas_instance_cluster_attachment.default.ecu_map[alicloud_instance.default.id]}"]
 		}
 
-		resource "alicloud_slb" "default" {
-		  name = "${var.name}"
+		resource "alicloud_slb_load_balancer" "default" {
+		  load_balancer_name = "${var.name}"
+          load_balancer_spec = "slb.s1.small"
 		}
 		`, name)
 }

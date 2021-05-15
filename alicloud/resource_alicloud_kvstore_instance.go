@@ -186,8 +186,9 @@ func resourceAlicloudKvstoreInstance() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
+				Computed:     true,
 				ValidateFunc: validation.StringInSlice([]string{"MASTER_SLAVE", "STAND_ALONE", "double", "single"}, false),
-				Default:      "double",
+				Deprecated:   "Field 'node_type' has been deprecated from version 1.120.1",
 			},
 			"order_type": {
 				Type:         schema.TypeString,
@@ -391,14 +392,6 @@ func resourceAlicloudKvstoreInstanceCreate(d *schema.ResourceData, meta interfac
 
 	if v, ok := d.GetOk("capacity"); ok {
 		request.Capacity = requests.NewInteger(v.(int))
-	}
-
-	if v, ok := d.GetOk("config"); ok {
-		respJson, err := convertMaptoJsonString(v.(map[string]interface{}))
-		if err != nil {
-			return WrapErrorf(err, DefaultErrorMsg, "alicloud_kvstore_instance", request.GetActionName(), AlibabaCloudSdkGoERROR)
-		}
-		request.Config = respJson
 	}
 
 	if v, ok := d.GetOk("coupon_no"); ok {
@@ -663,7 +656,7 @@ func resourceAlicloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 		}
 		d.SetPartial("tags")
 	}
-	if !d.IsNewResource() && d.HasChange("config") {
+	if d.HasChange("config") {
 		request := r_kvstore.CreateModifyInstanceConfigRequest()
 		request.InstanceId = d.Id()
 		respJson, err := convertMaptoJsonString(d.Get("config").(map[string]interface{}))
@@ -937,13 +930,14 @@ func resourceAlicloudKvstoreInstanceUpdate(d *schema.ResourceData, meta interfac
 	update = false
 	modifyDBInstanceConnectionStringReq := r_kvstore.CreateModifyDBInstanceConnectionStringRequest()
 	modifyDBInstanceConnectionStringReq.DBInstanceId = d.Id()
-	if !d.IsNewResource() && d.HasChange("private_connection_prefix") {
+	if d.HasChange("private_connection_prefix") {
 		update = true
 	}
 	modifyDBInstanceConnectionStringReq.NewConnectionString = d.Get("private_connection_prefix").(string)
 	modifyDBInstanceConnectionStringReq.IPType = "Private"
 	if update {
-		modifyDBInstanceConnectionStringReq.CurrentConnectionString = d.Get("connection_domain").(string)
+		object, err := r_kvstoreService.DescribeKvstoreInstance(d.Id())
+		modifyDBInstanceConnectionStringReq.CurrentConnectionString = object.ConnectionDomain
 		raw, err := client.WithRKvstoreClient(func(r_kvstoreClient *r_kvstore.Client) (interface{}, error) {
 			return r_kvstoreClient.ModifyDBInstanceConnectionString(modifyDBInstanceConnectionStringReq)
 		})

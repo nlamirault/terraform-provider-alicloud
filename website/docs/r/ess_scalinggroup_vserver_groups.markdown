@@ -49,23 +49,23 @@ resource "alicloud_vpc" "default" {
 resource "alicloud_vswitch" "default" {
   vpc_id            = alicloud_vpc.default.id
   cidr_block        = "172.16.0.0/24"
-  availability_zone = data.alicloud_zones.default.zones[0].id
+  zone_id           = data.alicloud_zones.default.zones[0].id
   name              = var.name
 }
 
-resource "alicloud_slb" "default" {
-  name       = var.name
+resource "alicloud_slb_load_balancer" "default" {
+  load_balancer_name       = var.name
   vswitch_id = alicloud_vswitch.default.id
 }
 
 resource "alicloud_slb_server_group" "default" {
-  load_balancer_id = alicloud_slb.default.id
+  load_balancer_id = alicloud_slb_load_balancer.default.id
   name             = "test"
 }
 
 resource "alicloud_slb_listener" "default" {
   count             = 2
-  load_balancer_id  = element(alicloud_slb.default.*.id, count.index)
+  load_balancer_id  = element(alicloud_slb_load_balancer.default.*.id, count.index)
   backend_port      = "22"
   frontend_port     = "22"
   protocol          = "tcp"
@@ -83,7 +83,7 @@ resource "alicloud_ess_scaling_group" "default" {
 resource "alicloud_ess_scalinggroup_vserver_groups" "default" {
   scaling_group_id = alicloud_ess_scaling_group.default.id
   vserver_groups {
-    loadbalancer_id = alicloud_slb.default.id
+    loadbalancer_id = alicloud_slb_load_balancer.default.id
     vserver_attributes {
       vserver_group_id = alicloud_slb_server_group.default.id
       port             = "100"

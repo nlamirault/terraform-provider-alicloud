@@ -17,6 +17,12 @@ set -e
 : ${BUCKET_REGION:=?}
 : ${ALICLOUD_RESOURCE_GROUP_ID:=""}
 : ${ALICLOUD_WAF_INSTANCE_ID:=""}
+: ${CONCOURSE_TARGET:=""}
+: ${CONCOURSE_TARGET_URL:=""}
+: ${CONCOURSE_TARGET_USER:=""}
+: ${CONCOURSE_TARGET_PASSWORD:=""}
+: ${CONCOURSE_TARGET_TRIGGER_PIPELINE_NAME:=""}
+: ${CONCOURSE_TARGET_TRIGGER_PIPELINE_JOB_NAME:=""}
 
 
 export ALICLOUD_ACCESS_KEY=${ALICLOUD_ACCESS_KEY}
@@ -47,23 +53,34 @@ if [[ ${DEBUG} = true ]]; then
 fi
 
 CURRENT_PATH=$(pwd)
+provider="terraform-provider-alicloud"
 
 go version
 
 cd $GOPATH
 mkdir -p src/github.com/aliyun
 cd src/github.com/aliyun
-cp -rf $CURRENT_PATH/terraform-provider-alicloud ./
+if [[ ${ALICLOUD_REGION} == "cn-"* ]]; then
+  echo -e "Downloading ${provider}.tgz ..."
+  aliyun oss cp oss://${BUCKET_NAME}/${provider}.tgz ${provider}.tgz -f --access-key-id ${ALICLOUD_ACCESS_KEY} --access-key-secret ${ALICLOUD_SECRET_KEY} --region ${BUCKET_REGION}
+  echo -e "Unpacking ${provider}.tgz ..."
+  aliyun oss ls oss://${BUCKET_NAME}/${provider}.tgz --access-key-id ${ALICLOUD_ACCESS_KEY} --access-key-secret ${ALICLOUD_SECRET_KEY} --region ${BUCKET_REGION}
+  tar -xzf ${provider}.tgz
+  rm -rf ${provider}.tgz
+else
+  cp -rf $CURRENT_PATH/terraform-provider-alicloud ./
+fi
+
 cd terraform-provider-alicloud
 
 if [[ ${SWEEPER} = true ]]; then
     echo -e "\n--------------- Running Sweeper Test Cases ---------------"
     if [[ ${TEST_SWEEPER_CASE_CODE} == "alicloud_"* ]]; then
-        echo -e "TF_ACC=1 go test ./alicloud -v  -sweep=${ALICLOUD_REGION} -sweep-run=${TEST_SWEEPER_CASE_CODE}"
-        TF_ACC=1 go test ./alicloud -v  -sweep=${ALICLOUD_REGION} -sweep-run=${TEST_SWEEPER_CASE_CODE} -timeout=60m
+        echo -e "TF_ACC=1 go test ./alicloud -v  -sweep=${ALICLOUD_REGION} -sweep-run=${TEST_SWEEPER_CASE_CODE} -sweep-allow-failures=true"
+        TF_ACC=1 go test ./alicloud -v  -sweep=${ALICLOUD_REGION} -sweep-run=${TEST_SWEEPER_CASE_CODE} -sweep-allow-failures=true -timeout=60m
     else
-        echo -e "TF_ACC=1 go test ./alicloud -v  -sweep=${ALICLOUD_REGION}"
-        TF_ACC=1 go test ./alicloud -v  -sweep=${ALICLOUD_REGION} -timeout=60m
+        echo -e "TF_ACC=1 go test ./alicloud -v  -sweep=${ALICLOUD_REGION} -sweep-allow-failures=true"
+        TF_ACC=1 go test ./alicloud -v  -sweep=${ALICLOUD_REGION} -sweep-allow-failures=true -timeout=60m
     fi
     echo -e "\n--------------- END ---------------"
     exit 0
@@ -83,14 +100,18 @@ LOGPERREGION=$region.log
 touch $LOGPERREGION
 
 echo -e "\n---------------  Running ${TEST_CASE_CODE} Test Cases ---------------"
-echo -e "TF_ACC=1 go test ./alicloud -v -run=TestAccAlicloud${TEST_CASE_CODE} -timeout=1200m"
+TestRunPrefix="TestAccAlicloud${TEST_CASE_CODE}"
+if [[ ${TEST_CASE_CODE} == "All" ]]; then
+  TestRunPrefix="TestAccAlicloud"
+fi
+echo -e "TF_ACC=1 go test ./alicloud -v -run=${TestRunPrefix} -timeout=1200m -cover"
 
 PASSED=100%
 
 FILE_NAME=${ALICLOUD_REGION}-${TEST_CASE_CODE}
 FAIL_FLAG=false
 
-TF_ACC=1 go test ./alicloud -v -run=TestAccAlicloud${TEST_CASE_CODE} -timeout=1200m | {
+TF_ACC=1 go test ./alicloud -v -run=${TestRunPrefix} -timeout=1200m -cover | {
 while read LINE
 do
     echo "$LINE" >> ${FILE_NAME}.log
@@ -115,6 +136,8 @@ do
         fi
     elif [[ ${FAIL_FLAG} == true ]];then
         echo -e "$LINE"
+    else
+      echo -e "$LINE"
     fi
 done
 
@@ -176,3 +199,16 @@ fi
 
 exit ${EXITCODE}
 }
+
+## If success, it should trigger an job in the China region
+if [[ ${ALICLOUD_REGION} != "cn-"* ]]; then
+  echo -e "\nDownloading the fly ..."
+  wget https://github.com/concourse/concourse/releases/download/v5.0.1/fly-5.0.1-linux-amd64.tgz
+  tar -xzf fly-5.0.1-linux-amd64.tgz
+  ./fly -t ${CONCOURSE_TARGET} login -c ${CONCOURSE_TARGET_URL} -u ${CONCOURSE_TARGET_USER} -p ${CONCOURSE_TARGET_PASSWORD}
+  if [[ $CONCOURSE_TARGET_TRIGGER_PIPELINE_JOB_NAME == "" ]]; then
+    CONCOURSE_TARGET_TRIGGER_PIPELINE_JOB_NAME=${TEST_CASE_CODE}
+  fi
+  echo -e "\n./fly -t ${CONCOURSE_TARGET} trigger-job --job ${CONCOURSE_TARGET_TRIGGER_PIPELINE_NAME}/${CONCOURSE_TARGET_TRIGGER_PIPELINE_JOB_NAME}"
+  ./fly -t ${CONCOURSE_TARGET} trigger-job --job ${CONCOURSE_TARGET_TRIGGER_PIPELINE_NAME}/${CONCOURSE_TARGET_TRIGGER_PIPELINE_JOB_NAME}
+fi

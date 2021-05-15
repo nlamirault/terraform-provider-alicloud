@@ -120,8 +120,8 @@ func resourceAlicloudTsdbInstanceCreate(d *schema.ResourceData, meta interface{}
 
 	request["InstanceClass"] = d.Get("instance_class")
 	request["InstanceStorage"] = d.Get("instance_storage")
-	request["PayType"] = convertTSDBInstancePaymentTypeRequest(d.Get("payment_type").(string))
-	if request["PayType"].(string) == "Subscription" {
+	request["PayType"] = convertTsdbInstancePaymentTypeRequest(d.Get("payment_type").(string))
+	if request["PayType"].(string) == "PREPAY" {
 		request["PricingCycle"] = "Month"
 	}
 	request["RegionId"] = client.RegionId
@@ -176,7 +176,7 @@ func resourceAlicloudTsdbInstanceRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("instance_alias", object["InstanceAlias"])
 	d.Set("instance_class", object["InstanceClass"])
 	d.Set("instance_storage", object["InstanceStorage"])
-	d.Set("payment_type", convertTSDBInstancePaymentTypeResponse(object["PaymentType"].(string)))
+	d.Set("payment_type", convertTsdbInstancePaymentTypeResponse(object["PaymentType"].(string)))
 	d.Set("status", object["Status"])
 	d.Set("vswitch_id", object["VswitchId"])
 	d.Set("zone_id", object["ZoneId"])
@@ -254,7 +254,7 @@ func resourceAlicloudTsdbInstanceUpdate(d *schema.ResourceData, meta interface{}
 				}
 				return resource.NonRetryableError(err)
 			}
-			addDebug(action, response, request)
+			addDebug(action, response, modifyHiTSDBInstanceClassReq)
 			return nil
 		})
 		if err != nil {
@@ -299,14 +299,14 @@ func resourceAlicloudTsdbInstanceDelete(d *schema.ResourceData, meta interface{}
 		return nil
 	})
 	if err != nil {
-		if IsExpectedErrors(err, []string{"TSDB.Errorcode.InstanceNotFound"}) {
+		if IsExpectedErrors(err, []string{"Instance.IsNotAvailable", "Instance.IsNotPostPay"}) {
 			return nil
 		}
 		return WrapErrorf(err, DefaultErrorMsg, d.Id(), action, AlibabaCloudSdkGoERROR)
 	}
 	return nil
 }
-func convertTSDBInstancePaymentTypeRequest(source string) string {
+func convertTsdbInstancePaymentTypeRequest(source string) string {
 	switch source {
 	case "PayAsYouGo":
 		return "POSTPAY"
@@ -315,7 +315,7 @@ func convertTSDBInstancePaymentTypeRequest(source string) string {
 	}
 	return source
 }
-func convertTSDBInstancePaymentTypeResponse(source string) string {
+func convertTsdbInstancePaymentTypeResponse(source string) string {
 	switch source {
 	case "POSTPAY":
 		return "PayAsYouGo"

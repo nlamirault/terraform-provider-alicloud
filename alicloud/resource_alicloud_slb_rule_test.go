@@ -32,7 +32,7 @@ func TestAccAlicloudSlbRuleUpdate(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccConfig(map[string]interface{}{
-					"load_balancer_id": "${alicloud_slb.default.id}",
+					"load_balancer_id": "${alicloud_slb_load_balancer.default.id}",
 					"frontend_port":    "${alicloud_slb_listener.default.frontend_port}",
 					"domain":           "*.aliyun.com",
 					"url":              "/image",
@@ -239,7 +239,7 @@ func TestAccAlicloudSlbRuleUpdate(t *testing.T) {
 			{
 				Config: testAccConfig(map[string]interface{}{
 					"name":                      "${var.name}",
-					"load_balancer_id":          "${alicloud_slb.default.id}",
+					"load_balancer_id":          "${alicloud_slb_load_balancer.default.id}",
 					"frontend_port":             "${alicloud_slb_listener.default.frontend_port}",
 					"domain":                    "*.aliyun.com",
 					"url":                       "/image",
@@ -299,13 +299,13 @@ data "alicloud_instance_types" "default" {
   memory_size       = 2
 }
 data "alicloud_images" "default" {
-        name_regex = "^ubuntu_18.*64"
+        name_regex = "^ubuntu"
   most_recent = true
   owners = "system"
 }
 
 resource "alicloud_vpc" "default" {
-  name = "${var.name}"
+  vpc_name = "${var.name}"
   cidr_block = "172.16.0.0/16"
 }
 
@@ -333,14 +333,14 @@ resource "alicloud_instance" "default" {
   instance_name = "${var.name}"
 }
 
-resource "alicloud_slb" "default" {
-  name = "${var.name}"
+resource "alicloud_slb_load_balancer" "default" {
+  load_balancer_name = "${var.name}"
   vswitch_id = "${alicloud_vswitch.default.id}"
-  specification = "slb.s1.small"
+  load_balancer_spec = "slb.s1.small"
 }
 
 resource "alicloud_slb_listener" "default" {
-  load_balancer_id = "${alicloud_slb.default.id}"
+  load_balancer_id = "${alicloud_slb_load_balancer.default.id}"
   backend_port = 22
   frontend_port = 22
   protocol = "http"
@@ -349,7 +349,7 @@ resource "alicloud_slb_listener" "default" {
 }
 
 resource "alicloud_slb_server_group" "default" {
-  load_balancer_id = "${alicloud_slb.default.id}"
+  load_balancer_id = "${alicloud_slb_load_balancer.default.id}"
   servers {
       server_ids = "${alicloud_instance.default.*.id}"
       port = 80

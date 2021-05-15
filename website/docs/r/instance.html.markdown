@@ -58,12 +58,12 @@ resource "alicloud_vpc" "vpc" {
 resource "alicloud_vswitch" "vswitch" {
   vpc_id            = alicloud_vpc.vpc.id
   cidr_block        = "172.16.0.0/24"
-  availability_zone = data.alicloud_zones.default.zones[0].id
-  name              = var.name
+  zone_id           = data.alicloud_zones.default.zones[0].id
+  vswitch_name      = var.name
 }
 
-resource "alicloud_slb" "slb" {
-  name       = "test-slb-tf"
+resource "alicloud_slb_load_balancer" "slb" {
+  load_balancer_name       = "test-slb-tf"
   vswitch_id = alicloud_vswitch.vswitch.id
 }
 
@@ -127,11 +127,12 @@ On other OSs such as Linux, the host name can contain a maximum of 64 characters
 * `kms_encryption_context` - (Optional, MapString, Available in 1.57.1+) An KMS encryption context used to decrypt `kms_encrypted_password` before creating or updating an instance with `kms_encrypted_password`. See [Encryption Context](https://www.alibabacloud.com/help/doc-detail/42975.htm). It is valid when `kms_encrypted_password` is set. When it is changed, the instance will reboot to make the change take effect.
 * `vswitch_id` - (Optional) The virtual switch ID to launch in VPC. This parameter must be set unless you can create classic network instances. When it is changed, the instance will reboot to make the change take effect.
 * `instance_charge_type` - (Optional) Valid values are `PrePaid`, `PostPaid`, The default is `PostPaid`.
-* `resource_group_id` - (ForceNew, ForceNew, Available in 1.57.0+) The Id of resource group which the instance belongs.
+* `resource_group_id` - (Optional, Available in 1.57.0+, Modifiable in 1.115.0+) The Id of resource group which the instance belongs.
 * `period_unit` - (Optional) The duration unit that you will buy the resource. It is valid when `instance_charge_type` is 'PrePaid'. Valid value: ["Week", "Month"]. Default to "Month".
-* `period` - (Optional) The duration that you will buy the resource, in month. It is valid when `instance_charge_type` is `PrePaid`. Default to 1. Valid values:
+* `period` - (Optional) The duration that you will buy the resource, in month. It is valid when `instance_charge_type` is `PrePaid`. Valid values:
     - [1-9, 12, 24, 36, 48, 60] when `period_unit` in "Month"
     - [1-3] when `period_unit` in "Week"
+-> **NOTE:** The attribute `period` is only used to create Subscription instance or modify the PayAsYouGo instance to Subscription. Once effect, it will not be modified that means running `terraform apply` will not effect the resource.
 
 * `renewal_status` - (Optional) Whether to renew an ECS instance automatically or not. It is valid when `instance_charge_type` is `PrePaid`. Default to "Normal". Valid values:
     - `AutoRenewal`: Enable auto renewal.

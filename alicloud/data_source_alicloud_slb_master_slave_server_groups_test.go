@@ -9,40 +9,40 @@ import (
 func TestAccAlicloudSlbMasterSlaveServerGroupsDataSource_basic(t *testing.T) {
 	basicConf := dataSourceTestAccConfig{
 		existConfig: testAccCheckAlicloudSlbMasterSlaveServerGroupsDataSourceConfig(map[string]string{
-			"load_balancer_id": `"${alicloud_slb.default.id}"`,
+			"load_balancer_id": `"${alicloud_slb_load_balancer.default.id}"`,
 		}),
 	}
 
 	nameRegexConf := dataSourceTestAccConfig{
 		existConfig: testAccCheckAlicloudSlbMasterSlaveServerGroupsDataSourceConfig(map[string]string{
-			"load_balancer_id": `"${alicloud_slb.default.id}"`,
+			"load_balancer_id": `"${alicloud_slb_load_balancer.default.id}"`,
 			"name_regex":       `"${alicloud_slb_master_slave_server_group.default.name}"`,
 		}),
 		fakeConfig: testAccCheckAlicloudSlbMasterSlaveServerGroupsDataSourceConfig(map[string]string{
-			"load_balancer_id": `"${alicloud_slb.default.id}"`,
+			"load_balancer_id": `"${alicloud_slb_load_balancer.default.id}"`,
 			"name_regex":       `"${alicloud_slb_master_slave_server_group.default.name}_fake"`,
 		}),
 	}
 
 	idsConf := dataSourceTestAccConfig{
 		existConfig: testAccCheckAlicloudSlbMasterSlaveServerGroupsDataSourceConfig(map[string]string{
-			"load_balancer_id": `"${alicloud_slb.default.id}"`,
+			"load_balancer_id": `"${alicloud_slb_load_balancer.default.id}"`,
 			"ids":              `["${alicloud_slb_master_slave_server_group.default.id}"]`,
 		}),
 		fakeConfig: testAccCheckAlicloudSlbMasterSlaveServerGroupsDataSourceConfig(map[string]string{
-			"load_balancer_id": `"${alicloud_slb.default.id}"`,
+			"load_balancer_id": `"${alicloud_slb_load_balancer.default.id}"`,
 			"ids":              `["${alicloud_slb_master_slave_server_group.default.id}_fake"]`,
 		}),
 	}
 
 	allConf := dataSourceTestAccConfig{
 		existConfig: testAccCheckAlicloudSlbMasterSlaveServerGroupsDataSourceConfig(map[string]string{
-			"load_balancer_id": `"${alicloud_slb.default.id}"`,
+			"load_balancer_id": `"${alicloud_slb_load_balancer.default.id}"`,
 			"ids":              `["${alicloud_slb_master_slave_server_group.default.id}"]`,
 			"name_regex":       `"${alicloud_slb_master_slave_server_group.default.name}"`,
 		}),
 		fakeConfig: testAccCheckAlicloudSlbMasterSlaveServerGroupsDataSourceConfig(map[string]string{
-			"load_balancer_id": `"${alicloud_slb.default.id}"`,
+			"load_balancer_id": `"${alicloud_slb_load_balancer.default.id}"`,
 			"ids":              `["${alicloud_slb_master_slave_server_group.default.id}_fake"]`,
 			"name_regex":       `"${alicloud_slb_master_slave_server_group.default.name}"`,
 		}),
@@ -95,7 +95,7 @@ data "alicloud_zones" "default" {
 }
 
 data "alicloud_images" "default" {
-  name_regex = "^ubuntu_18.*64"
+  name_regex = "^ubuntu"
   most_recent = true
   owners = "system"
 }
@@ -106,7 +106,7 @@ data "alicloud_instance_types" "default" {
 }
 
 resource "alicloud_vpc" "default" {
-  name = "${var.name}"
+  vpc_name = "${var.name}"
   cidr_block = "172.16.0.0/16"
 }
 
@@ -122,14 +122,14 @@ resource "alicloud_security_group" "default" {
   vpc_id = "${alicloud_vpc.default.id}"
 }
 
-resource "alicloud_slb" "default" {
-  name = "${var.name}"
+resource "alicloud_slb_load_balancer" "default" {
+  load_balancer_name = "${var.name}"
   vswitch_id = "${alicloud_vswitch.default.id}"
-  specification = "slb.s2.small"
+  load_balancer_spec = "slb.s2.small"
 }
 
 resource "alicloud_slb_listener" "default" {
-  load_balancer_id             = "${alicloud_slb.default.id}"
+  load_balancer_id             = "${alicloud_slb_load_balancer.default.id}"
   master_slave_server_group_id = "${alicloud_slb_master_slave_server_group.default.id}"
   frontend_port                = "22"
   protocol                     = "tcp"
@@ -164,7 +164,7 @@ resource "alicloud_instance" "default" {
 }
 
 resource "alicloud_slb_master_slave_server_group" "default" {
-  load_balancer_id = "${alicloud_slb.default.id}"
+  load_balancer_id = "${alicloud_slb_load_balancer.default.id}"
   name = "${var.name}"
   servers {
       server_id = "${alicloud_instance.default.0.id}"
